@@ -13,3 +13,23 @@ app.get('/', function (req, res) {
 });
 
 app.listen(process.env.PORT || 8080);
+
+// server.js
+const fs = require('fs');
+const PORT = 3000;
+
+app.get('/phrases', (req, res) => {
+    fs.readFile('C:/targetPhrases.txt', 'utf8', (err, data) => {
+        if (err) {
+            console.error(err);
+            res.status(500).send('Error reading phrases file');
+            return;
+        }
+        const phrases = data.split('\n').filter(Boolean); // Split by line and remove empty lines
+        res.json(phrases);
+    });
+});
+
+app.listen(PORT, () => {
+    console.log(`Server is running on http://localhost:${PORT}`);
+});

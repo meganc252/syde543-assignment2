@@ -89,6 +89,80 @@ class Watch extends React.Component {
 	constructor(props){
 		super(props);
 
+		// Hardcoded target phrases
+		this.phrases = [
+			"video camera with a zoom lens",
+			"have a good weekend",
+			"what a monkey sees a monkey will do",
+			"that is very unfortunate",
+			"the back yard of our house",
+			"i can see the rings on saturn",
+			"this is a very good idea",
+			"the quick brown fox jumps",
+			"hello world how are you today",
+			"the rain in spain falls mainly on the plain",
+			"an apple a day keeps the doctor away",
+			"to be or not to be that is the question",
+			"all that glitters is not gold",
+			"a picture is worth a thousand words",
+			"actions speak louder than words",
+			"the dreamers of dreams",
+			"did you have a good time",
+			"space is a high priority",
+			"you are a wonderful example",
+			"do not squander your time",
+			"do not drink too much",
+			"take a coffee break",
+			"popularity is desired by all",
+			"the music is better than it sounds",
+			"starlight and dewdrop",
+			"the living is easy",
+			"fish are jumping",
+			"the cotton is high",
+			"drove my chevy to the levee",
+			"but the levee was dry",
+			"thank you for your help",
+			"no exchange without a bill",
+			"the early bird gets the worm",
+			"buckle up for safety",
+			"this is too much to handle",
+			"protect your environment",
+			"world population is growing",
+			"the library is closed today",
+			"mary had a little lamb",
+			"teaching services will help",
+			"we accept personal checks",
+			"this is a non profit organization",
+			"user friendly interface",
+			"healthy food is good for you",
+			"hands on experience with a job",
+			"this watch is too expensive",
+			"the postal service is very slow",
+			"communicate through email",
+			"the capital of our nation",
+			"travel at the speed of light",
+			"i do not fully agree with you",
+			"gas bills are sent monthly",
+			"earth quakes are predictable",
+			"life is but a dream",
+			"take it to the recycling depot",
+			"sent this by registered mail",
+			"fall is my favorite season",
+			"a fox is a very smart animal",
+			"the kids are very excited",
+			"parking lot is full of trucks",
+			"my bike has a flat tire",
+			"do not walk too quickly",
+			"a duck quacks to ask for food",
+			"limited warranty of two years",
+			"the four seasons will come",
+			"the sun rises in the east",
+			"it is very windy today",
+			"do not worry about this",
+			"i want to hold your hand",
+			"the children are playing"
+		];
+
 		//Your URL parameter can be accessed with following syntax.
 		console.log(this.props.type);
 		console.log(this.props.type===undefined);
@@ -107,11 +181,20 @@ class Watch extends React.Component {
 		// 	setState({});
 		this.state = {
 			inputPhrase: "",
-			inputChar: ""
+			inputChar: "",
+			currentPhrase: this.targetPhrase,
+			phraseLog: [], // Array to store completed phrases and inputs
+			startTime: null,
+			endTime: null
 		};
 
 		//add the target phrases here or load them from external files
-		this.targetPhrase =  "target phrase one";
+		//this.targetPhrase =  "I was walking down the street";
+		const randomIndex = Math.floor(Math.random() * 70);
+		this.targetPhrase = this.phrases[randomIndex];
+		this.startTime = Date.now() //Record start time
+		//this.targetPhrase = this.phrases[Math.floor(Math.random() * 15)];
+		//const currentPhrase = this.targetPhrase;
 
 
 		// For Debug, uncomment only if you want to measure exact width and height in pixels.
@@ -136,17 +219,61 @@ class Watch extends React.Component {
 		this.state.inputPhrase += c;
 	};
 
-
-	//log data to files
-	//this sample code only logs the target phrase and the user's input phrases
-	//TODO: you need to log other measurements, such as the time when a user inputs each char, user id, etc.
 	saveData = () => {
-		let log_file = JSON.stringify({
-			targetPhrase: this.targetPhrase,
-			inputPhrase: this.state.inputPhrase
-		})
+		const { phraseLog } = this.state;
+		let log_file = JSON.stringify(phraseLog);
 		download(log_file, "results.txt", "text/plain");
 	}
+
+	calculateErrorRate = (inputPhrase, targetPhrase) => {
+		let errorCount = 0;
+		const maxLength = Math.max(inputPhrase.length, targetPhrase.length);
+	
+		// Count the number of incorrect characters
+		for (let i = 0; i < maxLength; i++) {
+			if (inputPhrase[i] !== targetPhrase[i]) {
+				errorCount++;
+			}
+		}
+	
+		// Calculate percent error: (incorrect characters / total characters in target phrase) * 100
+		const percentError = (errorCount / targetPhrase.length) * 100;
+		return percentError;
+	};
+
+
+	onDone = () => {
+
+        const { inputPhrase, phraseLog } = this.state;
+		const currentPhrase = this.targetPhrase;
+		const endTime = Date.now();
+		const duration = (endTime - this.startTime) / 1000;
+		const percentError = this.calculateErrorRate(inputPhrase,currentPhrase);
+
+		this.setState({
+            phraseLog: [...phraseLog, { currentPhrase, inputPhrase, duration, percentError, currentLength: currentPhrase.length }],
+			inputPhrase: "",
+			inputChar: ""
+        }, () => {
+			const randomIndex = Math.floor(Math.random() * 70);
+        	this.setState({ targetPhrase: this.phrases[randomIndex] });
+		})
+	}
+
+	onPhraseComplete = () => {
+		const randomIndex = Math.floor(Math.random() * 70);
+		this.targetPhrase = this.phrases[randomIndex];
+
+        const { inputPhrase, currentPhrase, startTime } = this.state;
+
+		// Log the completed target and input phrases
+		this.setState({
+			//phraseLog: [...phraseLog, { currentPhrase, inputPhrase, startTime }],
+			inputPhrase: "",// Reset input for the new phrase
+			inputChar: "",
+			startTime: Date.now()
+		})
+    };
 
 
 	/**
@@ -163,6 +290,8 @@ class Watch extends React.Component {
 					 <label>{this.targetPhrase}</label>
 					<TextArea inputChar={this.state.inputChar}/>
 					<KeyboardNormal originalScale={this.originalScale} onKeyCharReceived ={this.onKeyCharReceived}/>
+					<button onClick={this.onDone}>Done</button>
+					<button onClick={this.onPhraseComplete}>Next Phrase</button>
 					<button onClick={this.saveData}>SAVE</button>
 				</div>
 			);
@@ -176,7 +305,10 @@ class Watch extends React.Component {
 				  <label>{this.targetPhrase}</label>
 					<TextArea inputChar={this.state.inputChar}/>
 					<KeyboardZoom originalScale={this.originalScale} onKeyCharReceived ={this.onKeyCharReceived}/>
+					<button onClick={this.onDone}>Done</button>
+					<button onClick={this.onPhraseComplete}>Next Phrase</button>
 					<button onClick={this.saveData}>SAVE</button>
+					
 				</div>
 			);
 		}else{
